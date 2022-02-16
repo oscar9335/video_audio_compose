@@ -20,6 +20,8 @@ for the_audio in audio_file:
     start_place_float = 0.0
     end_place = 0
     end_place_float = 0.0
+    starting_time = 0
+    starting_time_float = 0.0
 
     the_audio_time_gap = count.specific_audio_time_info_gap(the_audio,basepath)
     the_duration = the_audio_time_gap/1000
@@ -27,28 +29,41 @@ for the_audio in audio_file:
     #obtain [#######1,######2]
 
     start_end = count.video_minus_audio(video_file,the_audio,basepath)
-    if (start_end[0] < 0): # video start earlier than audio
-        aaaaa = 1
-        # make the audio place on the video at specific start time
+    if (start_end[0] < 0): 
+        # video start earlier than audio
+        # Use CompositeAudioClip with clip.set_start().
+        starting_time = (-1) * start_end[0]
+        starting_time_float = starting_time/1000
+
+        
+        
     elif (start_end[0] > 0):# video start later than audio
         start_place = start_end[0]
         start_place_float = start_place/1000
 
     if (start_end[1] < 0):# video end earlier than audio
-        #duration use the video duration
-        all_audio.append(AudioFileClip(basepath + "/" + the_audio).subclip(start_place_float,video_time_gap_float+start_place_float))
+        if (starting_time_float > 0):
+            audio_set = AudioFileClip(basepath + "/" + the_audio).subclip(0.0,video_time_gap_float - starting_time_float)
+            audio_set = audio_set.set_start(starting_time_float)
+            all_audio.append(audio_set)
+            
+        else:
+            audio_set = AudioFileClip(basepath + "/" + the_audio).subclip(start_place_float,start_place_float + video_time_gap_float)
+            all_audio.append(audio_set)
+
 
     elif (start_end[1] > 0):# video end later than audio
-        end_place = start_end[1]
-        end_place_float = end_place/1000
-        all_audio.append(AudioFileClip(basepath + "/" + the_audio).subclip(start_place_float,end_place_float))
-
+        if (starting_time_float > 0):
+            audio_set = AudioFileClip(basepath + "/" + the_audio).subclip(0.0,the_duration)
+            audio_set = audio_set.set_start(starting_time_float)
+            all_audio.append(audio_set)
+        else:
+            audio_set = AudioFileClip(basepath + "/" + the_audio).subclip(start_place_float)
+            all_audio.append(audio_set)
     
 
 
+audio_compose = CompositeAudioClip(all_audio)
+new_video = main_video.set_audio(audio_compose)
 
-
-
-new_video = main_video
-
-new_video.write_videofile(filename="my_test1.mp4",codec='libx264')
+new_video.write_videofile(filename="my_test2.mp4",codec='libx264')
